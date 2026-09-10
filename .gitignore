@@ -1,0 +1,11 @@
+# .gitignore
+# 機能要約: Node/Electronの生成物とローカル環境ファイルをGit管理から除外する。
+
+node_modules/
+dist/
+dist-electron/
+release/
+.vite/
+*.log
+*.tmp
+

@@ -1,0 +1,307 @@
+/* src/styles.css */
+/* 機能要約: 現場PCで迷わず読める、泉大津チャレンジランキング画面のスタイル定義。 */
+
+:root {
+  --asphalt: #23272a;
+  --timing-black: #101316;
+  --pit-lane: #f4f5f0;
+  --panel: #ffffff;
+  --line: #d8ddd2;
+  --muted: #687064;
+  --signal: #d93f1f;
+  --course-green: #0f7a5a;
+  --focus: #1b6eea;
+  --warning: #b42318;
+  color: var(--timing-black);
+  font-family: "Yu Gothic UI", "Meiryo", system-ui, sans-serif;
+  font-size: 14px;
+  background: var(--pit-lane);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 1080px;
+  min-height: 720px;
+  background: var(--pit-lane);
+}
+
+button,
+input {
+  font: inherit;
+}
+
+button {
+  min-height: 38px;
+  border: 1px solid var(--asphalt);
+  border-radius: 6px;
+  background: #ffffff;
+  color: var(--timing-black);
+  cursor: pointer;
+}
+
+button:hover {
+  background: #f7f8f4;
+}
+
+button:focus-visible,
+input:focus-visible {
+  outline: 3px solid rgba(27, 110, 234, 0.26);
+  outline-offset: 2px;
+}
+
+input {
+  width: 100%;
+  min-height: 38px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 8px 10px;
+  background: #ffffff;
+}
+
+.app-shell {
+  display: grid;
+  grid-template-columns: 340px minmax(720px, 1fr);
+  min-height: 100vh;
+}
+
+.command-panel {
+  border-right: 1px solid var(--line);
+  background: #ecefe7;
+  padding: 18px;
+  overflow-y: auto;
+}
+
+.brand-block {
+  padding: 14px 0 18px;
+  border-bottom: 4px solid var(--asphalt);
+  margin-bottom: 18px;
+}
+
+.event-label {
+  margin: 0 0 4px;
+  color: var(--course-green);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+h1 {
+  margin: 0;
+  font-size: 24px;
+  line-height: 1.2;
+  font-weight: 800;
+}
+
+.control-group {
+  padding: 14px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.control-group:last-child {
+  border-bottom: 0;
+}
+
+.group-title,
+label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 700;
+}
+
+.file-row {
+  display: grid;
+  grid-template-columns: 1fr 74px;
+  gap: 8px;
+}
+
+.file-name {
+  margin: 7px 0 0;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+
+.control-group button {
+  width: 100%;
+  margin-top: 8px;
+}
+
+.primary-button {
+  border-color: var(--signal);
+  background: var(--signal);
+  color: #ffffff;
+  font-weight: 700;
+}
+
+.primary-button:hover {
+  background: #c7391d;
+}
+
+.quiet-button {
+  border-color: var(--line);
+  color: var(--muted);
+}
+
+.short-input {
+  width: 110px;
+}
+
+.check-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 10px 0 0;
+  font-weight: 500;
+}
+
+.check-row input {
+  width: 18px;
+  min-height: 18px;
+}
+
+.results-panel {
+  padding: 18px;
+  overflow: auto;
+}
+
+.status-strip {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(130px, 1fr));
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.status-strip div {
+  border-left: 6px solid var(--asphalt);
+  background: var(--panel);
+  padding: 10px 12px;
+}
+
+.status-strip span {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.status-strip strong {
+  display: block;
+  font-size: 28px;
+  line-height: 1.1;
+}
+
+.notice-stack {
+  min-height: 58px;
+  margin-bottom: 12px;
+}
+
+.notice,
+.error,
+.time-range {
+  margin: 0 0 6px;
+}
+
+.notice {
+  color: var(--course-green);
+}
+
+.error {
+  color: var(--warning);
+  font-weight: 700;
+}
+
+.time-range {
+  color: var(--muted);
+}
+
+.course-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(340px, 1fr));
+  gap: 12px;
+}
+
+.course-board {
+  border: 1px solid var(--line);
+  background: var(--panel);
+}
+
+.course-board > header {
+  border-top: 7px solid var(--course-green);
+  border-bottom: 1px solid var(--line);
+  padding: 12px;
+}
+
+.course-board h2 {
+  margin: 0;
+  font-size: 20px;
+}
+
+.ranking-block {
+  border-bottom: 1px solid var(--line);
+  padding: 10px 12px 12px;
+}
+
+.ranking-block:last-child {
+  border-bottom: 0;
+}
+
+.ranking-block h3 {
+  margin: 0 0 8px;
+  font-size: 14px;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+th,
+td {
+  border-bottom: 1px solid #edf0e9;
+  padding: 6px 5px;
+  text-align: left;
+  vertical-align: top;
+  overflow-wrap: anywhere;
+}
+
+th {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+th:nth-child(1),
+td:nth-child(1) {
+  width: 34px;
+  text-align: center;
+}
+
+th:nth-child(2),
+td:nth-child(2) {
+  width: 64px;
+  text-align: center;
+}
+
+th:nth-child(4),
+td:nth-child(4) {
+  width: 76px;
+  text-align: right;
+}
+
+.value-cell {
+  font-weight: 800;
+}
+
+.empty-cell {
+  color: var(--muted);
+  text-align: center;
+}
+
+@media (max-width: 1180px) {
+  .course-grid {
+    grid-template-columns: 1fr;
+  }
+}
+

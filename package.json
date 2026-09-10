@@ -1,0 +1,54 @@
+{
+  "name": "izumiotsu-enjoy-ranking",
+  "version": "0.1.0",
+  "description": "泉大津チャレンジ エンジョイランキングシステム",
+  "main": "dist-electron/main.js",
+  "private": true,
+  "scripts": {
+    "dev": "node scripts/dev.mjs",
+    "build": "npm run typecheck && npm run build:electron && vite build",
+    "build:electron": "tsc -p tsconfig.electron.json",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "vitest run",
+    "dist:win": "npm run build && electron-builder --win portable",
+    "dist:dir": "npm run build && electron-builder --win dir"
+  },
+  "devDependencies": {
+    "@types/node": "latest",
+    "@types/react": "latest",
+    "@types/react-dom": "latest",
+    "@vitejs/plugin-react": "latest",
+    "electron": "latest",
+    "electron-builder": "latest",
+    "react": "latest",
+    "react-dom": "latest",
+    "typescript": "latest",
+    "vite": "latest",
+    "vitest": "latest"
+  },
+  "build": {
+    "appId": "jp.izumiotsu.challenge.enjoy-ranking",
+    "productName": "泉大津チャレンジランキング",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "dist-electron/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "portable": {
+      "artifactName": "泉大津チャレンジランキング-latest.exe"
+    }
+  }
+}
