@@ -224,7 +224,7 @@ function rankBestLap(statsList: CarStats[], options: RankingOptions): RankingRow
     carNumber: stats.carNumber,
     carName: representativeCarName(stats),
     valueText: bestLap.lapTimeString || formatMilliseconds(bestLap.totalLapTimeMs),
-    detailText: `判定 ${bestLap.totalLapTimeMs.toLocaleString()} ms / 走行順 ${bestLap.runOrder}`
+    detailText: `走行本数 ${bestLap.runOrder}本目`
   }));
 }
 

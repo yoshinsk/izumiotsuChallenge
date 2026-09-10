@@ -50,6 +50,7 @@ describe("ranking domain", () => {
 
     expect(morning.bestLap[0].carNumber).toBe("M1");
     expect(morning.bestLap[0].valueText).toBe("53.768");
+    expect(morning.bestLap[0].detailText).toBe("走行本数 140本目");
   });
 
   test("指定しなければ存在するゼッケンをすべて順位表示する", () => {
@@ -116,6 +117,9 @@ describe("ranking domain", () => {
     expect(sheetXml).toContain("泉大津Challenge エンジョイランキング");
     expect(sheetXml).toContain("午前コース");
     expect(sheetXml).toContain("パイロンタッチ総数");
+    expect(sheetXml).toContain("走行本数 1本目");
+    expect(sheetXml).not.toContain("判定");
+    expect(sheetXml).not.toContain("走行順");
   });
 
   test("PDF用クラス名を指定名称へ置き換える", () => {
