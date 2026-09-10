@@ -1,13 +1,15 @@
 // electron/main.ts
-// 機能要約: Electronのメインプロセス。ウィンドウ作成、CSV読込、CSV保存のOS連携を担当する。
+// 機能要約: Electronのメインプロセス。ウィンドウ作成、メニュー非表示、CSV読込・保存、終了操作のOS連携を担当する。
 
-import { app, BrowserWindow, dialog, ipcMain, OpenDialogOptions, SaveDialogOptions } from "electron";
+import { app, BrowserWindow, dialog, ipcMain, Menu, OpenDialogOptions, SaveDialogOptions } from "electron";
 import fs from "node:fs/promises";
 import path from "node:path";
 
 let mainWindow: BrowserWindow | null = null;
 
 function createMainWindow(): void {
+  const iconPath = app.isPackaged ? path.join(process.resourcesPath, "icon.ico") : path.join(app.getAppPath(), "build", "icon.ico");
+
   // 表示領域を広めに取り、3コース分のランキングを横並びで確認しやすくする。
   mainWindow = new BrowserWindow({
     width: 1280,
@@ -16,6 +18,8 @@ function createMainWindow(): void {
     minHeight: 720,
     show: false,
     backgroundColor: "#f4f5f0",
+    autoHideMenuBar: true,
+    icon: iconPath,
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),
       contextIsolation: true,
@@ -23,6 +27,8 @@ function createMainWindow(): void {
       sandbox: false
     }
   });
+  mainWindow.removeMenu();
+  mainWindow.setMenuBarVisibility(false);
 
   mainWindow.once("ready-to-show", () => {
     mainWindow?.show();
@@ -37,6 +43,7 @@ function createMainWindow(): void {
 }
 
 app.whenReady().then(() => {
+  Menu.setApplicationMenu(null);
   createMainWindow();
 
   app.on("activate", () => {
@@ -97,4 +104,8 @@ ipcMain.handle("csv:save", async (_event, payload: { defaultName: string; conten
   // Excelで文字化けしにくいよう、UTF-8 BOM付きで保存する。
   await fs.writeFile(result.filePath, `\uFEFF${payload.content}`, "utf8");
   return result.filePath;
+});
+
+ipcMain.handle("app:quit", () => {
+  app.quit();
 });

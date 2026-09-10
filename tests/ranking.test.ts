@@ -55,7 +55,6 @@ describe("ranking domain", () => {
     const tables = buildRankings(classified);
     expect(tables.bestLap).toHaveLength(21);
     expect(tables.worstLapGap).toHaveLength(21);
-    expect(tables.missCourseTotal).toHaveLength(21);
   });
 
   test("ワースト走行差はMCをタイムに加算せずTotalLapTimeだけで比較する", () => {
@@ -71,6 +70,14 @@ describe("ranking domain", () => {
     expect(tables.missCourseTotal[0].valueText).toBe("3");
     expect(tables.pylonTouchTotal[0].valueText).toBe("2");
     expect(tables.twoWheelOffTotal[0].valueText).toBe("3");
+  });
+
+  test("総数ランキングは合計0件のゼッケンを表示しない", () => {
+    const laps = [lap("a", "7", 10_000), lap("b", "8", 11_000, { miss: 1 })];
+    const tables = buildRankings(toMorning(laps));
+    expect(tables.missCourseTotal.map((row) => row.carNumber)).toEqual(["8"]);
+    expect(tables.pylonTouchTotal).toHaveLength(0);
+    expect(tables.twoWheelOffTotal).toHaveLength(0);
   });
 
   test("体験コースのゼッケン範囲指定を判定する", () => {

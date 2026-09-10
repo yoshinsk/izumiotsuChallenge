@@ -267,6 +267,7 @@ function rankCountTotal(
 ): RankingRow[] {
   return statsList
     .map((stats) => ({ stats, total: totalOf(stats), detail: detailOf(stats) }))
+    .filter((candidate) => candidate.total > 0)
     .sort((a, b) => b.total - a.total || compareCarNumber(a.stats.carNumber, b.stats.carNumber))
     .slice(0, options.topN)
     .map(({ stats, total, detail }, index) => ({

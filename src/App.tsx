@@ -148,6 +148,10 @@ export default function App() {
     setMessage("設定を保存し、現在のデータで再集計しました。");
   }
 
+  function exitApp() {
+    void window.rankingApi.quitApp();
+  }
+
   async function exportCsv() {
     if (rankingCourseLaps.length === 0) {
       setError("先にCSVを読み込んでください。");
@@ -328,6 +332,10 @@ export default function App() {
             ランキングCSVを保存
           </button>
         </div>
+
+        <button type="button" className="exit-button" onClick={exitApp}>
+          終了
+        </button>
       </section>
 
       <section className="results-panel" aria-label="ランキング">

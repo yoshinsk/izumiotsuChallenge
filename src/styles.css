@@ -74,6 +74,8 @@ input {
 }
 
 .command-panel {
+  display: flex;
+  flex-direction: column;
   border-right: 1px solid var(--line);
   background: #ecefe7;
   padding: 18px;
@@ -167,6 +169,19 @@ label {
 .quiet-button {
   border-color: var(--line);
   color: var(--muted);
+}
+
+.exit-button {
+  width: 100%;
+  margin-top: auto;
+  border-color: var(--timing-black);
+  background: var(--timing-black);
+  color: #ffffff;
+  font-weight: 800;
+}
+
+.exit-button:hover {
+  background: var(--asphalt);
 }
 
 .short-input {
