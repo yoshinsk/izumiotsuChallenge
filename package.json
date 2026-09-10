@@ -1,6 +1,6 @@
 {
   "name": "izumiotsu-enjoy-ranking",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "description": "泉大津チャレンジ エンジョイランキングシステム",
   "main": "dist-electron/main.js",
   "private": true,
@@ -41,6 +41,18 @@
       {
         "from": "build/icon.ico",
         "to": "icon.ico"
+      },
+      {
+        "from": "build/pdf-logo.JPG",
+        "to": "pdf-logo.JPG"
+      },
+      {
+        "from": "build/NotoSansJP-VF.ttf",
+        "to": "NotoSansJP-VF.ttf"
+      },
+      {
+        "from": "build/NotoSansJP-OFL.txt",
+        "to": "NotoSansJP-OFL.txt"
       }
     ],
     "win": {
@@ -57,5 +69,8 @@
     "portable": {
       "artifactName": "izumiotsu-ranking-latest.exe"
     }
+  },
+  "dependencies": {
+    "jszip": "^3.10.2"
   }
 }

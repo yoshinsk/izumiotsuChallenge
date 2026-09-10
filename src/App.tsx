@@ -1,8 +1,9 @@
 // src/App.tsx
-// 機能要約: CSV選択、読み込みモード、設定、ランキング表示、CSV保存をまとめるReact画面。
+// 機能要約: CSV選択、読み込みモード、設定折りたたみ、ランキング表示、Excel/PDF保存をまとめるReact画面。
 
 import { type DragEvent, useMemo, useState } from "react";
-import { decodeCsvBase64, parseLapCsv, rankingsToCsv } from "./domain/csv";
+import { decodeCsvBase64, parseLapCsv } from "./domain/csv";
+import { createRankingWorkbookBase64 } from "./domain/excel";
 import {
   COURSE_AFTERNOON,
   COURSE_EXPERIENCE,
@@ -12,7 +13,6 @@ import {
   CourseName,
   RankingTables,
   buildRankings,
-  categoryLabels,
   classifyAsAfternoonSnapshot,
   classifyAsMorningSnapshot,
   classifyByTime,
@@ -20,6 +20,12 @@ import {
   isInstructorCarNumber,
   parseCutoffMinutes
 } from "./domain/ranking";
+import {
+  RankingCategory,
+  buildRankingWorkbookRows,
+  pdfClassLabels,
+  rankingCategoryConfig
+} from "./domain/reports";
 
 type Settings = {
   experienceRules: string;
@@ -34,18 +40,11 @@ const DEFAULT_SETTINGS: Settings = {
 };
 
 const STORAGE_KEY = "izumiotsu-ranking-settings";
-type RankingCategory = keyof RankingTables;
-const RANKING_CATEGORIES: { key: RankingCategory; valueLabel: string }[] = [
-  { key: "bestLap", valueLabel: "タイム" },
-  { key: "worstLapGap", valueLabel: "差" },
-  { key: "missCourseTotal", valueLabel: "総数" },
-  { key: "pylonTouchTotal", valueLabel: "総数" },
-  { key: "twoWheelOffTotal", valueLabel: "総数" }
-];
 
 export default function App() {
   const [settings, setSettings] = useState<Settings>(loadSettings);
   const [activeCategory, setActiveCategory] = useState<RankingCategory>("bestLap");
+  const [isSettingsHidden, setIsSettingsHidden] = useState(false);
   const [isDragActive, setIsDragActive] = useState(false);
   const [csvPath, setCsvPath] = useState("");
   const [csvFileName, setCsvFileName] = useState("未選択");
@@ -152,31 +151,44 @@ export default function App() {
     void window.rankingApi.quitApp();
   }
 
-  async function exportCsv() {
+  async function exportExcel() {
     if (rankingCourseLaps.length === 0) {
       setError("先にCSVを読み込んでください。");
       return;
     }
 
-    const rows = [["Course", "Category", "Rank", "CarNumber", "CarName", "Value", "Detail"]];
-    for (const course of COURSES) {
-      const tables = rankingsByCourse[course];
-      for (const [key, label] of Object.entries(categoryLabels) as [keyof RankingTables, string][]) {
-        for (const row of tables[key]) {
-          rows.push([course, label, String(row.rank), row.carNumber, row.carName, row.valueText, row.detailText]);
-        }
-      }
-    }
-
-    const defaultName = `泉大津チャレンジランキング_${formatExportTimestamp(new Date())}.csv`;
-    const savedPath = await window.rankingApi.saveCsvFile({
+    const now = new Date();
+    const rows = buildRankingWorkbookRows(rankingsByCourse, formatDateTime(now));
+    const defaultName = `泉大津チャレンジランキング_${formatExportTimestamp(now)}.xlsx`;
+    const savedPath = await window.rankingApi.saveExcelFile({
       defaultName,
-      content: rankingsToCsv(rows)
+      base64: await createRankingWorkbookBase64(rows)
     });
 
     if (savedPath) {
       setError("");
-      setMessage(`ランキングCSVを保存しました: ${savedPath}`);
+      setMessage(`ランキングExcelを保存しました: ${savedPath}`);
+    }
+  }
+
+  async function exportPdf(course: CourseName, categoryKey: RankingCategory, rows: RankingTables[RankingCategory]) {
+    if (rows.length === 0) {
+      setError("PDF保存できるリザルトがありません。");
+      return;
+    }
+
+    const className = pdfClassLabels[categoryKey];
+    const defaultName = `泉大津Challenge_${sanitizeFileName(course)}_${sanitizeFileName(className)}_${formatExportTimestamp(new Date())}.pdf`;
+    const savedPath = await window.rankingApi.savePdfFile({
+      defaultName,
+      course,
+      className,
+      rows
+    });
+
+    if (savedPath) {
+      setError("");
+      setMessage(`リザルトPDFを保存しました: ${savedPath}`);
     }
   }
 
@@ -251,87 +263,96 @@ export default function App() {
 
   return (
     <main
-      className={isDragActive ? "app-shell drag-active" : "app-shell"}
+      className={`${isDragActive ? "app-shell drag-active" : "app-shell"}${isSettingsHidden ? " settings-hidden" : ""}`}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={(event) => void handleDrop(event)}
     >
       <section className="command-panel" aria-label="操作">
-        <div className="brand-block">
-          <p className="event-label">泉大津チャレンジ</p>
-          <h1>エンジョイランキング</h1>
-        </div>
+        <button type="button" className="panel-toggle-button" onClick={() => setIsSettingsHidden(!isSettingsHidden)}>
+          {isSettingsHidden ? "設定" : "設定を隠す"}
+        </button>
 
-        <div className="control-group">
-          <label htmlFor="csvPath">走行結果CSV</label>
-          <div className="file-row">
-            <input
-              id="csvPath"
-              value={csvPath}
-              onChange={(event) => setCsvPath(event.target.value)}
-              placeholder="CSVファイルを選択またはドロップ"
-            />
-            <button type="button" onClick={selectCsv}>
-              選択
-            </button>
+        {!isSettingsHidden && (
+          <div className="panel-controls">
+            <div className="brand-block">
+              <p className="event-label">泉大津チャレンジ</p>
+              <h1>エンジョイランキング</h1>
+            </div>
+
+            <div className="control-group">
+              <label htmlFor="csvPath">走行結果CSV</label>
+              <div className="file-row">
+                <input
+                  id="csvPath"
+                  value={csvPath}
+                  onChange={(event) => setCsvPath(event.target.value)}
+                  placeholder="CSVファイルを選択またはドロップ"
+                />
+                <button type="button" onClick={selectCsv}>
+                  選択
+                </button>
+              </div>
+              <p className="file-name">{csvFileName}</p>
+              <div className={isDragActive ? "drop-zone active" : "drop-zone"}>
+                <strong>CSVをドロップして解析</strong>
+                <span>ドロップ後に時刻で自動判定します</span>
+              </div>
+            </div>
+
+            <div className="control-group">
+              <span className="group-title">読み込みモード</span>
+              <button type="button" className="primary-button" onClick={() => void importByTime()}>
+                時刻で自動判定
+              </button>
+              <button type="button" onClick={importAsMorning}>
+                午前CSVとして登録
+              </button>
+              <button type="button" onClick={importAsAfternoonSnapshot}>
+                午後CSV(累積)として登録
+              </button>
+              <button type="button" className="quiet-button" onClick={clearData}>
+                集計データを消去
+              </button>
+            </div>
+
+            <div className="control-group">
+              <span className="group-title">判定設定</span>
+              <label htmlFor="experienceRules">体験コースゼッケン</label>
+              <input
+                id="experienceRules"
+                value={settings.experienceRules}
+                onChange={(event) => setSettings({ ...settings, experienceRules: event.target.value })}
+              />
+              <p className="field-help">例: 900-999、900-950,980、T*</p>
+              <label htmlFor="cutoffTime">午前/午後境界</label>
+              <input
+                id="cutoffTime"
+                className="short-input"
+                value={settings.cutoffTime}
+                onChange={(event) => setSettings({ ...settings, cutoffTime: event.target.value })}
+              />
+              <label className="check-row">
+                <input
+                  type="checkbox"
+                  checked={settings.excludeInstructorRuns}
+                  onChange={(event) => setSettings({ ...settings, excludeInstructorRuns: event.target.checked })}
+                />
+                講師の走行を除外
+              </label>
+              <button type="button" onClick={saveSettings}>
+                設定保存・再集計
+              </button>
+            </div>
+
+            <div className="control-group">
+              <span className="group-title">出力</span>
+              <button type="button" onClick={() => void exportExcel()}>
+                ランキングExcelを保存
+              </button>
+            </div>
           </div>
-          <p className="file-name">{csvFileName}</p>
-          <div className={isDragActive ? "drop-zone active" : "drop-zone"}>
-            <strong>CSVをドロップして解析</strong>
-            <span>ドロップ後に時刻で自動判定します</span>
-          </div>
-        </div>
-
-        <div className="control-group">
-          <span className="group-title">読み込みモード</span>
-          <button type="button" className="primary-button" onClick={() => void importByTime()}>
-            時刻で自動判定
-          </button>
-          <button type="button" onClick={importAsMorning}>
-            午前CSVとして登録
-          </button>
-          <button type="button" onClick={importAsAfternoonSnapshot}>
-            午後CSV(累積)として登録
-          </button>
-          <button type="button" className="quiet-button" onClick={clearData}>
-            集計データを消去
-          </button>
-        </div>
-
-        <div className="control-group">
-          <span className="group-title">判定設定</span>
-          <label htmlFor="experienceRules">体験コースゼッケン</label>
-          <input
-            id="experienceRules"
-            value={settings.experienceRules}
-            onChange={(event) => setSettings({ ...settings, experienceRules: event.target.value })}
-          />
-          <label htmlFor="cutoffTime">午前/午後境界</label>
-          <input
-            id="cutoffTime"
-            className="short-input"
-            value={settings.cutoffTime}
-            onChange={(event) => setSettings({ ...settings, cutoffTime: event.target.value })}
-          />
-          <label className="check-row">
-            <input
-              type="checkbox"
-              checked={settings.excludeInstructorRuns}
-              onChange={(event) => setSettings({ ...settings, excludeInstructorRuns: event.target.checked })}
-            />
-            講師の走行を除外
-          </label>
-          <button type="button" onClick={saveSettings}>
-            設定保存・再集計
-          </button>
-        </div>
-
-        <div className="control-group">
-          <span className="group-title">出力</span>
-          <button type="button" onClick={exportCsv}>
-            ランキングCSVを保存
-          </button>
-        </div>
+        )}
 
         <button type="button" className="exit-button" onClick={exitApp}>
           終了
@@ -368,7 +389,7 @@ export default function App() {
         </div>
 
         <div className="ranking-tabs" role="tablist" aria-label="順位項目">
-          {RANKING_CATEGORIES.map((category) => (
+          {rankingCategoryConfig.map((category) => (
             <button
               key={category.key}
               type="button"
@@ -377,12 +398,16 @@ export default function App() {
               className={activeCategory === category.key ? "ranking-tab active" : "ranking-tab"}
               onClick={() => setActiveCategory(category.key)}
             >
-              {categoryLabels[category.key]}
+              {category.label}
             </button>
           ))}
         </div>
 
-        <RankingCategoryPanel activeCategory={activeCategory} rankingsByCourse={rankingsByCourse} />
+        <RankingCategoryPanel
+          activeCategory={activeCategory}
+          rankingsByCourse={rankingsByCourse}
+          onExportPdf={(course, categoryKey, rows) => void exportPdf(course, categoryKey, rows)}
+        />
       </section>
     </main>
   );
@@ -390,12 +415,14 @@ export default function App() {
 
 function RankingCategoryPanel({
   activeCategory,
-  rankingsByCourse
+  rankingsByCourse,
+  onExportPdf
 }: {
   activeCategory: RankingCategory;
   rankingsByCourse: Record<CourseName, RankingTables>;
+  onExportPdf: (course: CourseName, categoryKey: RankingCategory, rows: RankingTables[RankingCategory]) => void;
 }) {
-  const category = RANKING_CATEGORIES.find((item) => item.key === activeCategory) ?? RANKING_CATEGORIES[0];
+  const category = rankingCategoryConfig.find((item) => item.key === activeCategory) ?? rankingCategoryConfig[0];
 
   return (
     <div className="category-grid" role="tabpanel">
@@ -407,7 +434,12 @@ function RankingCategoryPanel({
               <h2>{course}</h2>
               <span>{rows.length}件</span>
             </header>
-            <RankingTable title={categoryLabels[category.key]} rows={rows} valueLabel={category.valueLabel} />
+            <RankingTable title={category.label} rows={rows} valueLabel={category.valueLabel} />
+            <div className="result-actions">
+              <button type="button" disabled={rows.length === 0} onClick={() => onExportPdf(course, category.key, rows)}>
+                PDFでダウンロード
+              </button>
+            </div>
           </section>
         );
       })}
@@ -513,4 +545,8 @@ function formatExportTimestamp(date: Date): string {
 
 function fileNameFromPath(filePath: string): string {
   return filePath.split(/[\\/]/).at(-1) ?? filePath;
+}
+
+function sanitizeFileName(value: string): string {
+  return value.replace(/[\\/:*?"<>|]/g, "_");
 }

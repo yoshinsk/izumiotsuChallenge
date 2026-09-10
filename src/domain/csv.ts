@@ -54,10 +54,6 @@ export function parseLapCsv(csvText: string): LapRecord[] {
     .map((row, offset) => rowToLapRecord(row, columnIndex, offset + 2));
 }
 
-export function rankingsToCsv(rows: string[][]): string {
-  return rows.map((row) => row.map(escapeCsvCell).join(",")).join("\r\n");
-}
-
 function parseCsvTable(csvText: string): string[][] {
   const rows: string[][] = [];
   let row: string[] = [];
@@ -155,13 +151,6 @@ function cell(row: string[], columnIndex: Map<string, number>, column: RequiredC
   return index === undefined ? "" : row[index] ?? "";
 }
 
-function escapeCsvCell(value: string): string {
-  if (!/[",\r\n]/.test(value)) {
-    return value;
-  }
-  return `"${value.replace(/"/g, "\"\"")}"`;
-}
-
 function base64ToBytes(base64: string): Uint8Array {
   const binary = window.atob(base64);
   const bytes = new Uint8Array(binary.length);
@@ -170,4 +159,3 @@ function base64ToBytes(base64: string): Uint8Array {
   }
   return bytes;
 }
-

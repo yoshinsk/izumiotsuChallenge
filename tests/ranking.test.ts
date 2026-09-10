@@ -3,19 +3,24 @@
 
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import JSZip from "jszip";
 import { describe, expect, test } from "vitest";
 import { parseLapCsv } from "../src/domain/csv";
+import { createRankingWorkbookBase64 } from "../src/domain/excel";
 import {
+  COURSE_AFTERNOON,
   COURSE_EXPERIENCE,
   COURSE_MORNING,
   CourseLap,
   LapRecord,
+  RankingTables,
   buildRankings,
   classifyByTime,
   countByCourse,
   isExperienceCarNumber,
   isInstructorCarNumber
 } from "../src/domain/ranking";
+import { buildRankingWorkbookRows, pdfClassLabels } from "../src/domain/reports";
 
 const sampleCsv = readFileSync(resolve("SampleData/result_2026_08_02-11_45_20.725.csv"), "utf8");
 
@@ -92,10 +97,48 @@ describe("ranking domain", () => {
     expect(isInstructorCarNumber("m4")).toBe(true);
     expect(isInstructorCarNumber("14")).toBe(false);
   });
+
+  test("Excel出力はxlsx構造とランキング行を生成する", async () => {
+    const tables = buildRankings(toMorning([lap("a", "7", 10_000), lap("b", "8", 11_000, { pylon: 1 })]));
+    const rows = buildRankingWorkbookRows(
+      {
+        [COURSE_MORNING]: tables,
+        [COURSE_AFTERNOON]: emptyTables(),
+        [COURSE_EXPERIENCE]: emptyTables()
+      },
+      "2026-09-10 12:00:00"
+    );
+    const zip = await JSZip.loadAsync(Buffer.from(await createRankingWorkbookBase64(rows), "base64"));
+    const workbookXml = await zip.file("xl/workbook.xml")?.async("string");
+    const sheetXml = await zip.file("xl/worksheets/sheet1.xml")?.async("string");
+
+    expect(workbookXml).toContain("ランキング");
+    expect(sheetXml).toContain("泉大津Challenge エンジョイランキング");
+    expect(sheetXml).toContain("午前コース");
+    expect(sheetXml).toContain("パイロンタッチ総数");
+  });
+
+  test("PDF用クラス名を指定名称へ置き換える", () => {
+    expect(pdfClassLabels.bestLap).toBe("速さランキング");
+    expect(pdfClassLabels.worstLapGap).toBe("成長した人？ランキング");
+    expect(pdfClassLabels.missCourseTotal).toBe("慣熟推奨ランキング");
+    expect(pdfClassLabels.pylonTouchTotal).toBe("パイロン破壊魔神ランキング");
+    expect(pdfClassLabels.twoWheelOffTotal).toBe("枠にハマらないランキング");
+  });
 });
 
 function toMorning(laps: LapRecord[]): CourseLap[] {
   return laps.map((item) => ({ lap: item, course: COURSE_MORNING }));
+}
+
+function emptyTables(): RankingTables {
+  return {
+    bestLap: [],
+    worstLapGap: [],
+    missCourseTotal: [],
+    pylonTouchTotal: [],
+    twoWheelOffTotal: []
+  };
 }
 
 function lap(

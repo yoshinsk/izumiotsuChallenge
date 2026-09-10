@@ -68,6 +68,10 @@ input {
   min-height: 100vh;
 }
 
+.app-shell.settings-hidden {
+  grid-template-columns: 76px minmax(720px, 1fr);
+}
+
 .app-shell.drag-active {
   outline: 4px solid rgba(27, 110, 234, 0.28);
   outline-offset: -4px;
@@ -80,6 +84,21 @@ input {
   background: #ecefe7;
   padding: 18px;
   overflow-y: auto;
+}
+
+.settings-hidden .command-panel {
+  padding: 14px 10px;
+}
+
+.panel-toggle-button {
+  width: 100%;
+  border-color: var(--line);
+  background: #ffffff;
+  font-weight: 800;
+}
+
+.panel-controls {
+  display: block;
 }
 
 .brand-block {
@@ -130,6 +149,13 @@ label {
   overflow-wrap: anywhere;
 }
 
+.field-help {
+  margin: 6px 0 12px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
 .drop-zone {
   display: grid;
   gap: 3px;
@@ -174,6 +200,7 @@ label {
 .exit-button {
   width: 100%;
   margin-top: auto;
+  min-height: 44px;
   border-color: var(--timing-black);
   background: var(--timing-black);
   color: #ffffff;
@@ -315,6 +342,30 @@ label {
 
 .ranking-block {
   padding: 10px 12px 12px;
+}
+
+.result-actions {
+  display: flex;
+  justify-content: flex-start;
+  padding: 0 12px 12px;
+}
+
+.result-actions button {
+  min-height: 34px;
+  border-color: var(--course-green);
+  color: var(--course-green);
+  padding: 0 12px;
+  font-weight: 700;
+}
+
+.result-actions button:disabled {
+  border-color: var(--line);
+  color: #a0a89d;
+  cursor: not-allowed;
+}
+
+.result-actions button:not(:disabled):hover {
+  background: rgba(15, 122, 90, 0.08);
 }
 
 .ranking-block:last-child {

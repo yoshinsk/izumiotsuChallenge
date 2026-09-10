@@ -7,8 +7,14 @@ const api = {
   selectCsvFile: (): Promise<string | null> => ipcRenderer.invoke("csv:select"),
   readCsvFile: (filePath: string): Promise<{ filePath: string; fileName: string; base64: string }> =>
     ipcRenderer.invoke("csv:read", filePath),
-  saveCsvFile: (payload: { defaultName: string; content: string }): Promise<string | null> =>
-    ipcRenderer.invoke("csv:save", payload),
+  saveExcelFile: (payload: { defaultName: string; base64: string }): Promise<string | null> =>
+    ipcRenderer.invoke("excel:save", payload),
+  savePdfFile: (payload: {
+    defaultName: string;
+    course: string;
+    className: string;
+    rows: { rank: number; carNumber: string; carName: string; valueText: string; detailText: string }[];
+  }): Promise<string | null> => ipcRenderer.invoke("pdf:save", payload),
   getPathForFile: (file: File): string => webUtils.getPathForFile(file),
   quitApp: (): Promise<void> => ipcRenderer.invoke("app:quit")
 };

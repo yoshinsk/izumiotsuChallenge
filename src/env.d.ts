@@ -7,7 +7,13 @@ interface Window {
   rankingApi: {
     selectCsvFile: () => Promise<string | null>;
     readCsvFile: (filePath: string) => Promise<{ filePath: string; fileName: string; base64: string }>;
-    saveCsvFile: (payload: { defaultName: string; content: string }) => Promise<string | null>;
+    saveExcelFile: (payload: { defaultName: string; base64: string }) => Promise<string | null>;
+    savePdfFile: (payload: {
+      defaultName: string;
+      course: string;
+      className: string;
+      rows: { rank: number; carNumber: string; carName: string; valueText: string; detailText: string }[];
+    }) => Promise<string | null>;
     getPathForFile: (file: File) => string;
     quitApp: () => Promise<void>;
   };
