@@ -50,7 +50,20 @@ describe("ranking domain", () => {
 
     expect(morning.bestLap[0].carNumber).toBe("M1");
     expect(morning.bestLap[0].valueText).toBe("53.768");
-    expect(morning.bestLap[0].detailText).toBe("走行本数 140本目");
+    expect(morning.bestLap[0].detailText).toBe("走行本数 3本目");
+  });
+
+  test("ベスト走行詳細はCSV全体ではなくゼッケンごとの走行本数を表示する", () => {
+    const laps = [
+      lap("run-10", "7", 12_000, { order: 10 }),
+      lap("run-11", "8", 11_000, { order: 11 }),
+      lap("run-93", "7", 10_000, { order: 93 })
+    ];
+    const tables = buildRankings(toMorning(laps));
+    const target = tables.bestLap.find((row) => row.carNumber === "7");
+
+    expect(target?.valueText).toBe("10.000");
+    expect(target?.detailText).toBe("走行本数 2本目");
   });
 
   test("指定しなければ存在するゼッケンをすべて順位表示する", () => {
@@ -149,11 +162,11 @@ function lap(
   lapId: string,
   carNumber: string,
   totalLapTimeMs: number,
-  counts: { miss?: number; four?: number; pylon?: number; two?: number } = {}
+  counts: { miss?: number; four?: number; pylon?: number; two?: number; order?: number } = {}
 ): LapRecord {
   return {
     lapId,
-    runOrder: lapId.length,
+    runOrder: counts.order ?? lapId.length,
     carNumber,
     carName: "テスト車両",
     startTimeMs: 1_785_600_000_000,

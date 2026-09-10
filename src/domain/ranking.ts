@@ -224,7 +224,7 @@ function rankBestLap(statsList: CarStats[], options: RankingOptions): RankingRow
     carNumber: stats.carNumber,
     carName: representativeCarName(stats),
     valueText: bestLap.lapTimeString || formatMilliseconds(bestLap.totalLapTimeMs),
-    detailText: `走行本数 ${bestLap.runOrder}本目`
+    detailText: `走行本数 ${carRunNumber(stats, bestLap)}本目`
   }));
 }
 
@@ -288,6 +288,13 @@ function limitRows<T>(rows: T[], topN: number | undefined): T[] {
 
 function representativeCarName(stats: CarStats): string {
   return [...stats.names.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], "ja"))[0]?.[0] ?? "";
+}
+
+function carRunNumber(stats: CarStats, targetLap: LapRecord): number {
+  // ベスト走行の詳細では、CSV全体の番号ではなく同一ゼッケン内での番号を表示する。
+  const ordered = [...stats.laps].sort((a, b) => a.runOrder - b.runOrder || a.lapId.localeCompare(b.lapId, "ja"));
+  const index = ordered.findIndex((lap) => lap === targetLap || (lap.lapId === targetLap.lapId && lap.runOrder === targetLap.runOrder));
+  return index >= 0 ? index + 1 : 1;
 }
 
 function matchesCarNumberRule(carNumber: string, rule: string): boolean {

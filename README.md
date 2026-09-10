@@ -30,13 +30,13 @@
 
 ## 集計ルール
 
-- ベスト走行: ゼッケンごとの最短 `TotalLapTime` を上位とします。表示は `LapTimeString` を使います。詳細欄には `走行本数 93本目` の形式で、該当走行がCSV内の何本目かを表示します。
+- ベスト走行: ゼッケンごとの最短 `TotalLapTime` を上位とします。表示は `LapTimeString` を使います。詳細欄には `走行本数 3本目` の形式で、該当ゼッケン内で何本目の走行かを表示します。
 - ワースト走行 & ベストとの差: ゼッケンごとの `最遅TotalLapTime - 最短TotalLapTime` が大きい順です。`MissCourseCount` はタイム比較に加算しません。
 - ミスコース総数: `MissCourseCount + FourWheelOffCourseCount` を合算します。
 - パイロンタッチ総数: `PylonTouchCount` を合算します。
 - 脱輪総数: `TwoWheelOffCourseCount` を合算します。
 - ミスコース総数、パイロンタッチ総数、脱輪総数は、集計結果が0のゼッケンを表示しません。
-- Excel出力でも、ベスト走行の詳細欄は `走行本数 93本目` の形式で保存します。
+- Excel出力でも、ベスト走行の詳細欄は該当ゼッケンごとの走行本数で保存します。
 
 ## PDFの表示名
 
