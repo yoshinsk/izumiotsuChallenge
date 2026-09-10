@@ -30,8 +30,8 @@
 
 ## 集計ルール
 
-- ベスト走行: ゼッケンごとの最短 `TotalLapTime` を上位とします。表示は `LapTimeString` を使います。詳細欄には `走行本数 3本目` の形式で、該当ゼッケン内で何本目の走行かを表示します。
-- ワースト走行 & ベストとの差: ゼッケンごとの `最遅TotalLapTime - 最短TotalLapTime` が大きい順です。`MissCourseCount` はタイム比較に加算しません。
+- ベスト走行: ゼッケンごとの最速 `TotalLapTime` を上位とします。表示は `LapTimeString` を使います。詳細欄には `走行本数 3本目` の形式で、該当ゼッケン内で何本目の走行かを表示します。
+- ワースト走行 & ベストとの差: ゼッケンごとの `最遅TotalLapTime - 最速TotalLapTime` が大きい順です。`MissCourseCount` はタイム比較に加算しません。
 - ミスコース総数: `MissCourseCount + FourWheelOffCourseCount` を合算します。
 - パイロンタッチ総数: `PylonTouchCount` を合算します。
 - 脱輪総数: `TwoWheelOffCourseCount` を合算します。
