@@ -8,6 +8,6 @@ interface Window {
     selectCsvFile: () => Promise<string | null>;
     readCsvFile: (filePath: string) => Promise<{ filePath: string; fileName: string; base64: string }>;
     saveCsvFile: (payload: { defaultName: string; content: string }) => Promise<string | null>;
+    getPathForFile: (file: File) => string;
   };
 }
-

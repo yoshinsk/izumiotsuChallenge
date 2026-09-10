@@ -13,7 +13,8 @@ import {
   buildRankings,
   classifyByTime,
   countByCourse,
-  isExperienceCarNumber
+  isExperienceCarNumber,
+  isInstructorCarNumber
 } from "../src/domain/ranking";
 
 const sampleCsv = readFileSync(resolve("SampleData/result_2026_08_02-11_45_20.725.csv"), "utf8");
@@ -26,42 +27,47 @@ describe("ranking domain", () => {
     expect(laps[0].lapTimeString).toBe("56.675");
   });
 
-  test("既定の体験ゼッケン設定でMゼッケンを体験コースへ分類する", () => {
+  test("M付きゼッケンは体験設定より講師扱いを優先する", () => {
     const laps = parseLapCsv(sampleCsv);
     const classified = classifyByTime(laps, "M1-M999,900-999", "12:00");
     const counts = countByCourse(classified);
-    expect(counts[COURSE_EXPERIENCE]).toBe(11);
-    expect(counts[COURSE_MORNING]).toBe(129);
+    expect(counts[COURSE_EXPERIENCE]).toBe(0);
+    expect(counts[COURSE_MORNING]).toBe(140);
   });
 
-  test("サンプルCSVの午前と体験のベストラップを算出する", () => {
+  test("サンプルCSVの午前ベスト走行を算出する", () => {
     const laps = parseLapCsv(sampleCsv);
     const classified = classifyByTime(laps, "M1-M999,900-999", "12:00");
     const morning = buildRankings(
       classified.filter((courseLap) => courseLap.course === COURSE_MORNING),
-      { topN: 3, excludeMissCourseLaps: true, hideZeroTotals: true }
-    );
-    const experience = buildRankings(
-      classified.filter((courseLap) => courseLap.course === COURSE_EXPERIENCE),
-      { topN: 3, excludeMissCourseLaps: true, hideZeroTotals: true }
+      { topN: 3 }
     );
 
-    expect(morning.bestLap[0].carNumber).toBe("18");
-    expect(morning.bestLap[0].valueText).toBe("56.103");
-    expect(experience.bestLap[0].carNumber).toBe("M1");
-    expect(experience.bestLap[0].valueText).toBe("53.768");
+    expect(morning.bestLap[0].carNumber).toBe("M1");
+    expect(morning.bestLap[0].valueText).toBe("53.768");
   });
 
-  test("ワーストラップ差は初期設定でMC走行を除外する", () => {
+  test("指定しなければ存在するゼッケンをすべて順位表示する", () => {
+    const laps = parseLapCsv(sampleCsv);
+    const classified = classifyByTime(laps, "900-999", "12:00").filter(
+      (courseLap) => courseLap.course === COURSE_MORNING && !isInstructorCarNumber(courseLap.lap.carNumber)
+    );
+    const tables = buildRankings(classified);
+    expect(tables.bestLap).toHaveLength(21);
+    expect(tables.worstLapGap).toHaveLength(21);
+    expect(tables.missCourseTotal).toHaveLength(21);
+  });
+
+  test("ワースト走行差はMCをタイムに加算せずTotalLapTimeだけで比較する", () => {
     const laps = [lap("a", "1", 10_000), lap("b", "1", 50_000, { miss: 1 }), lap("c", "1", 12_000)];
-    const tables = buildRankings(toMorning(laps), { topN: 3, excludeMissCourseLaps: true, hideZeroTotals: true });
-    expect(tables.worstLapGap[0].valueText).toBe("2.000");
-    expect(tables.worstLapGap[0].detailText).toContain("ワースト 12.000");
+    const tables = buildRankings(toMorning(laps));
+    expect(tables.worstLapGap[0].valueText).toBe("40.000");
+    expect(tables.worstLapGap[0].detailText).toContain("ワースト 50.000");
   });
 
   test("総数ランキングは指定列を合算する", () => {
     const laps = [lap("a", "7", 10_000, { miss: 1, four: 1, pylon: 2, two: 1 }), lap("b", "7", 11_000, { four: 1, two: 2 })];
-    const tables = buildRankings(toMorning(laps), { topN: 3, excludeMissCourseLaps: true, hideZeroTotals: true });
+    const tables = buildRankings(toMorning(laps));
     expect(tables.missCourseTotal[0].valueText).toBe("3");
     expect(tables.pylonTouchTotal[0].valueText).toBe("2");
     expect(tables.twoWheelOffTotal[0].valueText).toBe("3");
@@ -72,6 +78,12 @@ describe("ranking domain", () => {
     expect(isExperienceCarNumber("950", "900-999")).toBe(true);
     expect(isExperienceCarNumber("MABC", "M*")).toBe(true);
     expect(isExperienceCarNumber("12", "M1-M999")).toBe(false);
+  });
+
+  test("M付きゼッケンを講師として判定する", () => {
+    expect(isInstructorCarNumber("M1")).toBe(true);
+    expect(isInstructorCarNumber("m4")).toBe(true);
+    expect(isInstructorCarNumber("14")).toBe(false);
   });
 });
 

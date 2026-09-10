@@ -1,7 +1,7 @@
 // src/App.tsx
 // 機能要約: CSV選択、読み込みモード、設定、ランキング表示、CSV保存をまとめるReact画面。
 
-import { useMemo, useState } from "react";
+import { type DragEvent, useMemo, useState } from "react";
 import { decodeCsvBase64, parseLapCsv, rankingsToCsv } from "./domain/csv";
 import {
   COURSE_AFTERNOON,
@@ -17,27 +17,36 @@ import {
   classifyAsMorningSnapshot,
   classifyByTime,
   countByCourse,
+  isInstructorCarNumber,
   parseCutoffMinutes
 } from "./domain/ranking";
 
 type Settings = {
   experienceRules: string;
   cutoffTime: string;
-  excludeMissCourseLaps: boolean;
-  hideZeroTotals: boolean;
+  excludeInstructorRuns: boolean;
 };
 
 const DEFAULT_SETTINGS: Settings = {
-  experienceRules: "M1-M999,900-999",
+  experienceRules: "900-999",
   cutoffTime: "12:00",
-  excludeMissCourseLaps: true,
-  hideZeroTotals: true
+  excludeInstructorRuns: true
 };
 
 const STORAGE_KEY = "izumiotsu-ranking-settings";
+type RankingCategory = keyof RankingTables;
+const RANKING_CATEGORIES: { key: RankingCategory; valueLabel: string }[] = [
+  { key: "bestLap", valueLabel: "タイム" },
+  { key: "worstLapGap", valueLabel: "差" },
+  { key: "missCourseTotal", valueLabel: "総数" },
+  { key: "pylonTouchTotal", valueLabel: "総数" },
+  { key: "twoWheelOffTotal", valueLabel: "総数" }
+];
 
 export default function App() {
   const [settings, setSettings] = useState<Settings>(loadSettings);
+  const [activeCategory, setActiveCategory] = useState<RankingCategory>("bestLap");
+  const [isDragActive, setIsDragActive] = useState(false);
   const [csvPath, setCsvPath] = useState("");
   const [csvFileName, setCsvFileName] = useState("未選択");
   const [records, setRecords] = useState<Map<string, CourseLap>>(new Map());
@@ -46,23 +55,25 @@ export default function App() {
   const [error, setError] = useState("");
 
   const allCourseLaps = useMemo(() => [...records.values()], [records]);
-  const courseCounts = useMemo(() => countByCourse(allCourseLaps), [allCourseLaps]);
+  const rankingCourseLaps = useMemo(() => {
+    if (!settings.excludeInstructorRuns) {
+      return allCourseLaps;
+    }
+    return allCourseLaps.filter((courseLap) => !isInstructorCarNumber(courseLap.lap.carNumber));
+  }, [allCourseLaps, settings.excludeInstructorRuns]);
+  const excludedInstructorCount = allCourseLaps.length - rankingCourseLaps.length;
+  const courseCounts = useMemo(() => countByCourse(rankingCourseLaps), [rankingCourseLaps]);
   const rankingsByCourse = useMemo(() => {
     return COURSES.reduce(
       (tables, course) => {
         tables[course] = buildRankings(
-          allCourseLaps.filter((courseLap) => courseLap.course === course),
-          {
-            topN: 3,
-            excludeMissCourseLaps: settings.excludeMissCourseLaps,
-            hideZeroTotals: settings.hideZeroTotals
-          }
+          rankingCourseLaps.filter((courseLap) => courseLap.course === course)
         );
         return tables;
       },
       {} as Record<CourseName, RankingTables>
     );
-  }, [allCourseLaps, settings.excludeMissCourseLaps, settings.hideZeroTotals]);
+  }, [rankingCourseLaps]);
 
   const timeRange = useMemo(() => formatTimeRange(allCourseLaps), [allCourseLaps]);
 
@@ -76,8 +87,8 @@ export default function App() {
     }
   }
 
-  async function importByTime() {
-    const laps = await readCurrentCsv();
+  async function importByTime(filePathOverride?: string, successMessage = "時刻判定で読み込みました。") {
+    const laps = await readCurrentCsv(filePathOverride);
     if (!laps || !validateSettings()) {
       return;
     }
@@ -88,7 +99,7 @@ export default function App() {
       new Set(classified.filter((courseLap) => courseLap.course === COURSE_MORNING).map((courseLap) => courseLap.lap.lapId))
     );
     persistSettings(settings);
-    setMessage("時刻判定で読み込みました。");
+    setMessage(successMessage);
   }
 
   async function importAsMorning() {
@@ -138,7 +149,7 @@ export default function App() {
   }
 
   async function exportCsv() {
-    if (allCourseLaps.length === 0) {
+    if (rankingCourseLaps.length === 0) {
       setError("先にCSVを読み込んでください。");
       return;
     }
@@ -165,9 +176,9 @@ export default function App() {
     }
   }
 
-  async function readCurrentCsv() {
+  async function readCurrentCsv(filePathOverride?: string) {
     setError("");
-    const path = csvPath || (await window.rankingApi.selectCsvFile());
+    const path = filePathOverride || csvPath || (await window.rankingApi.selectCsvFile());
     if (!path) {
       return null;
     }
@@ -186,6 +197,42 @@ export default function App() {
     }
   }
 
+  function handleDragOver(event: DragEvent<HTMLElement>) {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = "copy";
+    setIsDragActive(true);
+  }
+
+  function handleDragLeave(event: DragEvent<HTMLElement>) {
+    if (event.currentTarget === event.target) {
+      setIsDragActive(false);
+    }
+  }
+
+  async function handleDrop(event: DragEvent<HTMLElement>) {
+    event.preventDefault();
+    setIsDragActive(false);
+
+    const file = event.dataTransfer.files.item(0);
+    if (!file) {
+      return;
+    }
+
+    const droppedPath = window.rankingApi.getPathForFile(file);
+    if (!droppedPath) {
+      setError("ドロップしたCSVのパスを取得できませんでした。選択ボタンから指定してください。");
+      return;
+    }
+    if (!droppedPath.toLowerCase().endsWith(".csv")) {
+      setError("CSVファイルをドロップしてください。");
+      return;
+    }
+
+    setCsvPath(droppedPath);
+    setCsvFileName(fileNameFromPath(droppedPath));
+    await importByTime(droppedPath, "CSVをドロップし、時刻判定で読み込みました。");
+  }
+
   function validateSettings(): boolean {
     try {
       parseCutoffMinutes(settings.cutoffTime);
@@ -199,7 +246,12 @@ export default function App() {
   }
 
   return (
-    <main className="app-shell">
+    <main
+      className={isDragActive ? "app-shell drag-active" : "app-shell"}
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={(event) => void handleDrop(event)}
+    >
       <section className="command-panel" aria-label="操作">
         <div className="brand-block">
           <p className="event-label">泉大津チャレンジ</p>
@@ -209,17 +261,26 @@ export default function App() {
         <div className="control-group">
           <label htmlFor="csvPath">走行結果CSV</label>
           <div className="file-row">
-            <input id="csvPath" value={csvPath} onChange={(event) => setCsvPath(event.target.value)} placeholder="CSVファイルを選択" />
+            <input
+              id="csvPath"
+              value={csvPath}
+              onChange={(event) => setCsvPath(event.target.value)}
+              placeholder="CSVファイルを選択またはドロップ"
+            />
             <button type="button" onClick={selectCsv}>
               選択
             </button>
           </div>
           <p className="file-name">{csvFileName}</p>
+          <div className={isDragActive ? "drop-zone active" : "drop-zone"}>
+            <strong>CSVをドロップして解析</strong>
+            <span>ドロップ後に時刻で自動判定します</span>
+          </div>
         </div>
 
         <div className="control-group">
           <span className="group-title">読み込みモード</span>
-          <button type="button" className="primary-button" onClick={importByTime}>
+          <button type="button" className="primary-button" onClick={() => void importByTime()}>
             時刻で自動判定
           </button>
           <button type="button" onClick={importAsMorning}>
@@ -251,18 +312,10 @@ export default function App() {
           <label className="check-row">
             <input
               type="checkbox"
-              checked={settings.excludeMissCourseLaps}
-              onChange={(event) => setSettings({ ...settings, excludeMissCourseLaps: event.target.checked })}
+              checked={settings.excludeInstructorRuns}
+              onChange={(event) => setSettings({ ...settings, excludeInstructorRuns: event.target.checked })}
             />
-            ラップ順位からMC走行を除外
-          </label>
-          <label className="check-row">
-            <input
-              type="checkbox"
-              checked={settings.hideZeroTotals}
-              onChange={(event) => setSettings({ ...settings, hideZeroTotals: event.target.checked })}
-            />
-            総数0の順位を非表示
+            講師の走行を除外
           </label>
           <button type="button" onClick={saveSettings}>
             設定保存・再集計
@@ -280,8 +333,8 @@ export default function App() {
       <section className="results-panel" aria-label="ランキング">
         <div className="status-strip">
           <div>
-            <span>総走行</span>
-            <strong>{allCourseLaps.length}</strong>
+            <span>対象走行</span>
+            <strong>{rankingCourseLaps.length}</strong>
           </div>
           <div>
             <span>午前</span>
@@ -301,30 +354,56 @@ export default function App() {
           {message && <p className="notice">{message}</p>}
           {error && <p className="error">{error}</p>}
           {timeRange && <p className="time-range">{timeRange}</p>}
+          {settings.excludeInstructorRuns && excludedInstructorCount > 0 && (
+            <p className="time-range">講師の走行 {excludedInstructorCount}件を除外中</p>
+          )}
         </div>
 
-        <div className="course-grid">
-          {COURSES.map((course) => (
-            <CourseBoard key={course} course={course} tables={rankingsByCourse[course]} />
+        <div className="ranking-tabs" role="tablist" aria-label="順位項目">
+          {RANKING_CATEGORIES.map((category) => (
+            <button
+              key={category.key}
+              type="button"
+              role="tab"
+              aria-selected={activeCategory === category.key}
+              className={activeCategory === category.key ? "ranking-tab active" : "ranking-tab"}
+              onClick={() => setActiveCategory(category.key)}
+            >
+              {categoryLabels[category.key]}
+            </button>
           ))}
         </div>
+
+        <RankingCategoryPanel activeCategory={activeCategory} rankingsByCourse={rankingsByCourse} />
       </section>
     </main>
   );
 }
 
-function CourseBoard({ course, tables }: { course: CourseName; tables: RankingTables }) {
+function RankingCategoryPanel({
+  activeCategory,
+  rankingsByCourse
+}: {
+  activeCategory: RankingCategory;
+  rankingsByCourse: Record<CourseName, RankingTables>;
+}) {
+  const category = RANKING_CATEGORIES.find((item) => item.key === activeCategory) ?? RANKING_CATEGORIES[0];
+
   return (
-    <section className="course-board">
-      <header>
-        <h2>{course}</h2>
-      </header>
-      <RankingTable title={categoryLabels.bestLap} rows={tables.bestLap} valueLabel="タイム" />
-      <RankingTable title={categoryLabels.worstLapGap} rows={tables.worstLapGap} valueLabel="差" />
-      <RankingTable title={categoryLabels.missCourseTotal} rows={tables.missCourseTotal} valueLabel="総数" />
-      <RankingTable title={categoryLabels.pylonTouchTotal} rows={tables.pylonTouchTotal} valueLabel="総数" />
-      <RankingTable title={categoryLabels.twoWheelOffTotal} rows={tables.twoWheelOffTotal} valueLabel="総数" />
-    </section>
+    <div className="category-grid" role="tabpanel">
+      {COURSES.map((course) => {
+        const rows = rankingsByCourse[course][category.key];
+        return (
+          <section className="course-ranking" key={course}>
+            <header>
+              <h2>{course}</h2>
+              <span>{rows.length}件</span>
+            </header>
+            <RankingTable title={categoryLabels[category.key]} rows={rows} valueLabel={category.valueLabel} />
+          </section>
+        );
+      })}
+    </div>
   );
 }
 
@@ -372,7 +451,7 @@ function loadSettings(): Settings {
     if (!saved) {
       return DEFAULT_SETTINGS;
     }
-    return { ...DEFAULT_SETTINGS, ...JSON.parse(saved) };
+    return normalizeSettings({ ...DEFAULT_SETTINGS, ...JSON.parse(saved) });
   } catch {
     return DEFAULT_SETTINGS;
   }
@@ -380,6 +459,13 @@ function loadSettings(): Settings {
 
 function persistSettings(settings: Settings): void {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
+}
+
+function normalizeSettings(settings: Settings): Settings {
+  if (settings.experienceRules === "M1-M999,900-999") {
+    return { ...settings, experienceRules: DEFAULT_SETTINGS.experienceRules };
+  }
+  return settings;
 }
 
 function mapByLapId(courseLaps: CourseLap[]): Map<string, CourseLap> {

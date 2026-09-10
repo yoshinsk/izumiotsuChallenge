@@ -68,6 +68,11 @@ input {
   min-height: 100vh;
 }
 
+.app-shell.drag-active {
+  outline: 4px solid rgba(27, 110, 234, 0.28);
+  outline-offset: -4px;
+}
+
 .command-panel {
   border-right: 1px solid var(--line);
   background: #ecefe7;
@@ -121,6 +126,26 @@ label {
   margin: 7px 0 0;
   color: var(--muted);
   overflow-wrap: anywhere;
+}
+
+.drop-zone {
+  display: grid;
+  gap: 3px;
+  margin-top: 10px;
+  border: 2px dashed #aeb9aa;
+  border-radius: 6px;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.46);
+  color: var(--muted);
+}
+
+.drop-zone strong {
+  color: var(--timing-black);
+}
+
+.drop-zone.active {
+  border-color: var(--focus);
+  background: rgba(27, 110, 234, 0.08);
 }
 
 .control-group button {
@@ -215,30 +240,65 @@ label {
   color: var(--muted);
 }
 
-.course-grid {
+.ranking-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 12px;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 10px;
+}
+
+.ranking-tab {
+  width: auto;
+  min-height: 38px;
+  border-color: var(--line);
+  padding: 0 14px;
+  font-weight: 700;
+}
+
+.ranking-tab.active {
+  border-color: var(--signal);
+  background: var(--signal);
+  color: #ffffff;
+}
+
+.ranking-tab.active:hover {
+  background: #c7391d;
+}
+
+.category-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(340px, 1fr));
   gap: 12px;
 }
 
-.course-board {
+.course-ranking {
   border: 1px solid var(--line);
   background: var(--panel);
 }
 
-.course-board > header {
+.course-ranking > header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
   border-top: 7px solid var(--course-green);
   border-bottom: 1px solid var(--line);
   padding: 12px;
 }
 
-.course-board h2 {
+.course-ranking h2 {
   margin: 0;
   font-size: 20px;
 }
 
+.course-ranking > header span {
+  color: var(--muted);
+  font-weight: 700;
+}
+
 .ranking-block {
-  border-bottom: 1px solid var(--line);
   padding: 10px 12px 12px;
 }
 
@@ -300,8 +360,7 @@ td:nth-child(4) {
 }
 
 @media (max-width: 1180px) {
-  .course-grid {
+  .category-grid {
     grid-template-columns: 1fr;
   }
 }
-

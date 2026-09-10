@@ -45,9 +45,7 @@ export type RankingTables = {
 };
 
 export type RankingOptions = {
-  topN: number;
-  excludeMissCourseLaps: boolean;
-  hideZeroTotals: boolean;
+  topN?: number;
 };
 
 type CarStats = {
@@ -57,8 +55,8 @@ type CarStats = {
 };
 
 export const categoryLabels: Record<keyof RankingTables, string> = {
-  bestLap: "ベストラップ",
-  worstLapGap: "ワーストラップ & ベストとの差",
+  bestLap: "ベスト走行",
+  worstLapGap: "ワースト走行 & ベストとの差",
   missCourseTotal: "ミスコース総数 (MC + 4脱)",
   pylonTouchTotal: "パイロンタッチ総数",
   twoWheelOffTotal: "脱輪総数 (2脱)"
@@ -68,7 +66,7 @@ export function classifyByTime(laps: LapRecord[], experienceRules: string, cutof
   const cutoffMinutes = parseCutoffMinutes(cutoffText);
 
   return laps.map((lap) => {
-    if (isExperienceCarNumber(lap.carNumber, experienceRules)) {
+    if (!isInstructorCarNumber(lap.carNumber) && isExperienceCarNumber(lap.carNumber, experienceRules)) {
       return { lap, course: COURSE_EXPERIENCE };
     }
 
@@ -89,7 +87,7 @@ export function classifyByTime(laps: LapRecord[], experienceRules: string, cutof
 export function classifyAsMorningSnapshot(laps: LapRecord[], experienceRules: string): CourseLap[] {
   return laps.map((lap) => ({
     lap,
-    course: isExperienceCarNumber(lap.carNumber, experienceRules) ? COURSE_EXPERIENCE : COURSE_MORNING
+    course: !isInstructorCarNumber(lap.carNumber) && isExperienceCarNumber(lap.carNumber, experienceRules) ? COURSE_EXPERIENCE : COURSE_MORNING
   }));
 }
 
@@ -99,7 +97,7 @@ export function classifyAsAfternoonSnapshot(
   morningLapIds: Set<string>
 ): CourseLap[] {
   return laps.map((lap) => {
-    if (isExperienceCarNumber(lap.carNumber, experienceRules)) {
+    if (!isInstructorCarNumber(lap.carNumber) && isExperienceCarNumber(lap.carNumber, experienceRules)) {
       return { lap, course: COURSE_EXPERIENCE };
     }
 
@@ -110,7 +108,7 @@ export function classifyAsAfternoonSnapshot(
   });
 }
 
-export function buildRankings(courseLaps: CourseLap[], options: RankingOptions): RankingTables {
+export function buildRankings(courseLaps: CourseLap[], options: RankingOptions = {}): RankingTables {
   const statsList = [...groupByCar(courseLaps).values()];
 
   return {
@@ -191,6 +189,10 @@ export function isExperienceCarNumber(carNumber: string, rulesText: string): boo
     .some((rule) => matchesCarNumberRule(normalizedCarNumber, rule));
 }
 
+export function isInstructorCarNumber(carNumber: string): boolean {
+  return carNumber.trim().toUpperCase().startsWith("M");
+}
+
 function groupByCar(courseLaps: CourseLap[]): Map<string, CarStats> {
   const statsByCar = new Map<string, CarStats>();
 
@@ -211,18 +213,13 @@ function groupByCar(courseLaps: CourseLap[]): Map<string, CarStats> {
 function rankBestLap(statsList: CarStats[], options: RankingOptions): RankingRow[] {
   const candidates = statsList
     .map((stats) => {
-      const laps = rankingLaps(stats, options.excludeMissCourseLaps);
-      if (laps.length === 0) {
-        return null;
-      }
-
-      const bestLap = [...laps].sort((a, b) => a.totalLapTimeMs - b.totalLapTimeMs || a.runOrder - b.runOrder)[0];
+      const bestLap = [...stats.laps].sort((a, b) => a.totalLapTimeMs - b.totalLapTimeMs || a.runOrder - b.runOrder)[0];
       return { stats, bestLap };
     })
     .filter((candidate): candidate is { stats: CarStats; bestLap: LapRecord } => candidate !== null)
     .sort((a, b) => a.bestLap.totalLapTimeMs - b.bestLap.totalLapTimeMs || compareCarNumber(a.stats.carNumber, b.stats.carNumber));
 
-  return candidates.slice(0, options.topN).map(({ stats, bestLap }, index) => ({
+  return limitRows(candidates, options.topN).map(({ stats, bestLap }, index) => ({
     rank: index + 1,
     carNumber: stats.carNumber,
     carName: representativeCarName(stats),
@@ -234,12 +231,7 @@ function rankBestLap(statsList: CarStats[], options: RankingOptions): RankingRow
 function rankWorstLapGap(statsList: CarStats[], options: RankingOptions): RankingRow[] {
   const candidates = statsList
     .map((stats) => {
-      const laps = rankingLaps(stats, options.excludeMissCourseLaps);
-      if (laps.length === 0) {
-        return null;
-      }
-
-      const ordered = [...laps].sort((a, b) => a.totalLapTimeMs - b.totalLapTimeMs || a.runOrder - b.runOrder);
+      const ordered = [...stats.laps].sort((a, b) => a.totalLapTimeMs - b.totalLapTimeMs || a.runOrder - b.runOrder);
       const bestLap = ordered[0];
       const worstLap = ordered[ordered.length - 1];
       const gapMs = worstLap.totalLapTimeMs - bestLap.totalLapTimeMs;
@@ -256,7 +248,7 @@ function rankWorstLapGap(statsList: CarStats[], options: RankingOptions): Rankin
         compareCarNumber(a.stats.carNumber, b.stats.carNumber)
     );
 
-  return candidates.slice(0, options.topN).map(({ stats, bestLap, worstLap, gapMs }, index) => ({
+  return limitRows(candidates, options.topN).map(({ stats, bestLap, worstLap, gapMs }, index) => ({
     rank: index + 1,
     carNumber: stats.carNumber,
     carName: representativeCarName(stats),
@@ -275,7 +267,6 @@ function rankCountTotal(
 ): RankingRow[] {
   return statsList
     .map((stats) => ({ stats, total: totalOf(stats), detail: detailOf(stats) }))
-    .filter((candidate) => !options.hideZeroTotals || candidate.total > 0)
     .sort((a, b) => b.total - a.total || compareCarNumber(a.stats.carNumber, b.stats.carNumber))
     .slice(0, options.topN)
     .map(({ stats, total, detail }, index) => ({
@@ -287,11 +278,11 @@ function rankCountTotal(
     }));
 }
 
-function rankingLaps(stats: CarStats, excludeMissCourseLaps: boolean): LapRecord[] {
-  if (!excludeMissCourseLaps) {
-    return stats.laps;
+function limitRows<T>(rows: T[], topN: number | undefined): T[] {
+  if (topN === undefined) {
+    return rows;
   }
-  return stats.laps.filter((lap) => lap.missCourseCount === 0);
+  return rows.slice(0, topN);
 }
 
 function representativeCarName(stats: CarStats): string {
@@ -360,4 +351,3 @@ function compareCarNumber(left: string, right: string): number {
   }
   return left.localeCompare(right, "ja");
 }
-
