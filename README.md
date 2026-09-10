@@ -4,7 +4,7 @@
 
 ## ダウンロード
 
-[最新版をダウンロード](https://github.com/yoshinsk/izumiotsuChallenge/releases/latest/download/%E6%B3%89%E5%A4%A7%E6%B4%A5%E3%83%81%E3%83%A3%E3%83%AC%E3%83%B3%E3%82%B8%E3%83%A9%E3%83%B3%E3%82%AD%E3%83%B3%E3%82%B0-latest.exe)
+[最新版をダウンロード](https://github.com/yoshinsk/izumiotsuChallenge/releases/latest/download/izumiotsu-ranking-latest.exe)
 
 インストーラーは不要です。ダウンロードしたexeをそのまま起動してください。
 
