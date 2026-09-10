@@ -254,7 +254,7 @@ export default function App() {
               checked={settings.excludeMissCourseLaps}
               onChange={(event) => setSettings({ ...settings, excludeMissCourseLaps: event.target.checked })}
             />
-            ラップ順位からMC周回を除外
+            ラップ順位からMC走行を除外
           </label>
           <label className="check-row">
             <input
@@ -420,4 +420,3 @@ function formatExportTimestamp(date: Date): string {
 function fileNameFromPath(filePath: string): string {
   return filePath.split(/[\\/]/).at(-1) ?? filePath;
 }
-

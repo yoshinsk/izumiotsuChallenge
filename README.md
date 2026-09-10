@@ -20,7 +20,7 @@
 ## 集計ルール
 
 - ベストラップ: ゼッケンごとの最短 `TotalLapTime` を上位とします。表示は `LapTimeString` を使います。
-- ワーストラップ & ベストとの差: ゼッケンごとの `最遅TotalLapTime - 最短TotalLapTime` が大きい順です。初期設定では `MissCourseCount` がある周回を除外します。
+- ワーストラップ & ベストとの差: ゼッケンごとの `最遅TotalLapTime - 最短TotalLapTime` が大きい順です。初期設定では `MissCourseCount` がある走行を除外します。
 - ミスコース総数: `MissCourseCount + FourWheelOffCourseCount` を合算します。
 - パイロンタッチ総数: `PylonTouchCount` を合算します。
 - 脱輪総数: `TwoWheelOffCourseCount` を合算します。
