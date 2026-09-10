@@ -30,12 +30,13 @@
 
 ## 集計ルール
 
-- ベスト走行: ゼッケンごとの最短 `TotalLapTime` を上位とします。表示は `LapTimeString` を使います。
+- ベスト走行: ゼッケンごとの最短 `TotalLapTime` を上位とします。表示は `LapTimeString` を使います。詳細欄には `走行本数 93本目` の形式で、該当走行がCSV内の何本目かを表示します。
 - ワースト走行 & ベストとの差: ゼッケンごとの `最遅TotalLapTime - 最短TotalLapTime` が大きい順です。`MissCourseCount` はタイム比較に加算しません。
 - ミスコース総数: `MissCourseCount + FourWheelOffCourseCount` を合算します。
 - パイロンタッチ総数: `PylonTouchCount` を合算します。
 - 脱輪総数: `TwoWheelOffCourseCount` を合算します。
 - ミスコース総数、パイロンタッチ総数、脱輪総数は、集計結果が0のゼッケンを表示しません。
+- Excel出力でも、ベスト走行の詳細欄は `走行本数 93本目` の形式で保存します。
 
 ## PDFの表示名
 
@@ -45,7 +46,7 @@
 - パイロンタッチ総数: パイロン破壊魔神ランキング
 - 脱輪総数: 枠にハマらないランキング
 
-PDFはA4縦で保存します。ヘッダー中央に `泉大津Challenge` と表示名を入れ、右下にロゴを配置します。フォントは同梱のNoto Sans JPを使用します。
+PDFはA4縦で保存します。ヘッダー中央に `泉大津Challenge` と表示名を入れ、右下に北村塾ロゴを配置します。フォントは同梱のNoto Sans JPを使用します。
 
 ## 開発
 
